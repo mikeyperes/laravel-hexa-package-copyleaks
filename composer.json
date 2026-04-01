@@ -1,0 +1,20 @@
+{
+    "name": "hexawebsystems/laravel-hexa-package-copyleaks",
+    "description": "Copyleaks — AI detection and plagiarism checking",
+    "type": "library",
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "hexa_package_copyleaks\\": "src/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "hexa_package_copyleaks\\Providers\\CopyleaksServiceProvider"
+            ]
+        }
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true
+}
