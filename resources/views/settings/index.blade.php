@@ -17,13 +17,39 @@
         <p class="text-xs text-blue-600 mt-2">Docs: <a href="https://docs.copyleaks.com" target="_blank" class="underline inline-flex items-center gap-1">docs.copyleaks.com <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg></a></p>
     </div>
 
-    {{-- Account Email (core component) --}}
-    <x-hexa-credential-field
-        slug="copyleaks"
-        key-name="email"
-        label="Copyleaks Account Email"
-        help="The email address you used to sign up at copyleaks.com."
-    />
+    {{-- Account Email (plain text — not a secret) --}}
+    <div class="bg-white border border-gray-200 rounded-lg p-4" x-data="{
+        email: '{{ \hexa_core\Services\CredentialService::class ? app(\hexa_core\Services\CredentialService::class)->get('copyleaks', 'email') ?? '' : '' }}',
+        saving: false, saved: false,
+        async saveEmail() {
+            if (!this.email.trim()) return;
+            this.saving = true;
+            try {
+                const r = await fetch('{{ route('credentials.save') }}', { method: 'POST', headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content, 'Accept': 'application/json', 'Content-Type': 'application/json' }, body: JSON.stringify({ slug: 'copyleaks', key_name: 'email', value: this.email }) });
+                const d = await r.json();
+                this.saved = d.success;
+                setTimeout(() => this.saved = false, 3000);
+            } catch(e) {}
+            this.saving = false;
+        }
+    }">
+        <div class="flex items-center justify-between mb-2">
+            <label class="text-sm font-medium text-gray-700">Copyleaks Account Email</label>
+            <span class="flex items-center gap-1.5 text-xs">
+                <span class="w-2 h-2 rounded-full" :class="email ? 'bg-green-500' : 'bg-red-400'"></span>
+                <span :class="email ? 'text-green-600' : 'text-red-500'" x-text="email ? 'Configured' : 'Not Set'"></span>
+            </span>
+        </div>
+        <div class="flex items-center gap-2">
+            <input type="email" x-model="email" class="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="your@email.com">
+            <button @click="saveEmail()" :disabled="saving || !email.trim()" type="button"
+                class="inline-flex items-center gap-1.5 text-xs font-medium bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50">
+                <svg x-show="saving" x-cloak class="animate-spin h-3 w-3" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
+                <span x-text="saving ? 'Saving...' : (saved ? 'Saved!' : 'Save')"></span>
+            </button>
+        </div>
+        <p class="text-xs text-gray-400 mt-2">The email address you used to sign up at copyleaks.com.</p>
+    </div>
 
     {{-- API Key (core component) --}}
     <x-hexa-credential-field
