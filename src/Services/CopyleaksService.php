@@ -52,22 +52,32 @@ class CopyleaksService
     }
 
     /**
-     * Get the API key.
+     * Get the API key (from CredentialService or legacy Setting).
      *
      * @return string|null
      */
     public function getApiKey(): ?string
     {
+        if (class_exists(\hexa_core\Services\CredentialService::class)) {
+            $cred = app(\hexa_core\Services\CredentialService::class);
+            $val = $cred->get('copyleaks', 'api_key');
+            if ($val) return $val;
+        }
         return Setting::getValue('copyleaks_api_key');
     }
 
     /**
-     * Get the account email for API login.
+     * Get the account email for API login (from CredentialService or legacy Setting).
      *
      * @return string|null
      */
     public function getEmail(): ?string
     {
+        if (class_exists(\hexa_core\Services\CredentialService::class)) {
+            $cred = app(\hexa_core\Services\CredentialService::class);
+            $val = $cred->get('copyleaks', 'email');
+            if ($val) return $val;
+        }
         return Setting::getValue('copyleaks_email');
     }
 
