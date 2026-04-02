@@ -7,19 +7,26 @@
 
     <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
         <h3 class="font-semibold text-gray-800 mb-1">Copyleaks AI Detection</h3>
-        <p class="text-sm text-gray-500 mb-4">Detect AI-generated content with per-sentence probability scoring.</p>
+        <p class="text-sm text-gray-500 mb-4">AI content detection and plagiarism checking via Copyleaks API.</p>
 
         <div class="bg-blue-50 rounded-lg p-4 text-sm text-blue-800 mb-4 space-y-2">
             <p class="font-semibold">Setup Instructions</p>
             <ol class="list-decimal list-inside space-y-1 text-blue-700">
                 <li>Create an account at <a href="https://copyleaks.com/sign-up" target="_blank" class="underline inline-flex items-center gap-1">copyleaks.com <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg></a></li>
-                <li>Go to <a href="https://api.copyleaks.com" target="_blank" class="underline inline-flex items-center gap-1">API portal <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg></a> and generate your API key</li>
-                <li>Paste the key below and click Test to verify</li>
+                <li>Go to <a href="https://api.copyleaks.com" target="_blank" class="underline inline-flex items-center gap-1">API portal <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg></a> and copy your API key</li>
+                <li>Enter your Copyleaks account email and API key below</li>
+                <li>Click Test to verify authentication</li>
             </ol>
-            <p class="text-xs text-blue-600">Docs: <a href="https://copyleaks.com/ai-content-detector/ai-content-detector-api" target="_blank" class="underline inline-flex items-center gap-1">AI Detector API docs <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg></a></p>
+            <p class="text-xs text-blue-600">Auth: email + API key login to get bearer token (48h). Docs: <a href="https://docs.copyleaks.com" target="_blank" class="underline inline-flex items-center gap-1">docs.copyleaks.com <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg></a></p>
         </div>
 
         <div class="space-y-4">
+            {{-- Account Email --}}
+            <div>
+                <label class="block text-xs text-gray-500 mb-1">Account Email</label>
+                <input type="email" x-model="email" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="{{ \hexa_core\Models\Setting::getValue('copyleaks_email') ? \hexa_core\Models\Setting::getValue('copyleaks_email') : 'your@email.com' }}">
+            </div>
+
             {{-- API Key --}}
             <div>
                 <label class="block text-xs text-gray-500 mb-1">API Key</label>
@@ -42,7 +49,7 @@
             {{-- Debug Mode --}}
             <label class="flex items-center gap-2 cursor-pointer">
                 <input type="checkbox" x-model="debugMode" class="rounded border-gray-300 text-yellow-600">
-                <span class="text-sm text-gray-700">Debug Mode <span class="text-gray-400">(sends only first 3 sentences to save API credits)</span></span>
+                <span class="text-sm text-gray-700">Debug Mode <span class="text-gray-400">(sends only first 3 sentences, sandbox mode)</span></span>
             </label>
 
             <button @click="save()" :disabled="saving" class="bg-blue-600 text-white px-5 py-2 rounded-lg text-sm hover:bg-blue-700 disabled:opacity-50 inline-flex items-center gap-2">
@@ -63,17 +70,25 @@ function copyleaksSettings() {
     const csrf = document.querySelector('meta[name="csrf-token"]')?.content;
     const headers = { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrf, 'Accept': 'application/json' };
     return {
-        apiKey: '', enabled: {{ \hexa_core\Models\Setting::getValue('copyleaks_enabled', true) ? 'true' : 'false' }}, debugMode: {{ \hexa_core\Models\Setting::getValue('copyleaks_debug_mode', false) ? 'true' : 'false' }},
+        email: '', apiKey: '',
+        enabled: {{ \hexa_core\Models\Setting::getValue('copyleaks_enabled', true) ? 'true' : 'false' }},
+        debugMode: {{ \hexa_core\Models\Setting::getValue('copyleaks_debug_mode', false) ? 'true' : 'false' }},
         saving: false, saved: false, testing: false, testResult: '', testSuccess: false,
         async save() {
             this.saving = true; this.saved = false;
-            try { const r = await fetch('{{ route("copyleaks.settings.save") }}', { method: 'POST', headers, body: JSON.stringify({ api_key: this.apiKey || null, enabled: this.enabled, debug_mode: this.debugMode }) }); const d = await r.json(); this.saved = d.success; setTimeout(() => this.saved = false, 3000); } catch(e) {}
+            try {
+                const r = await fetch('{{ route("copyleaks.settings.save") }}', { method: 'POST', headers, body: JSON.stringify({ email: this.email || null, api_key: this.apiKey || null, enabled: this.enabled, debug_mode: this.debugMode }) });
+                const d = await r.json(); this.saved = d.success; setTimeout(() => this.saved = false, 3000);
+            } catch(e) {}
             this.saving = false;
         },
         async testApi() {
             this.testing = true; this.testResult = '';
-            if (this.apiKey) await this.save();
-            try { const r = await fetch('{{ route("copyleaks.test") }}', { method: 'POST', headers }); const d = await r.json(); this.testSuccess = d.success; this.testResult = d.message; } catch(e) { this.testSuccess = false; this.testResult = 'Request failed'; }
+            if (this.apiKey || this.email) await this.save();
+            try {
+                const r = await fetch('{{ route("copyleaks.test") }}', { method: 'POST', headers });
+                const d = await r.json(); this.testSuccess = d.success; this.testResult = d.message;
+            } catch(e) { this.testSuccess = false; this.testResult = 'Request failed'; }
             this.testing = false;
         }
     };

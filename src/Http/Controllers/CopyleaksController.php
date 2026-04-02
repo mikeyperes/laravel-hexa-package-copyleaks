@@ -43,13 +43,20 @@ class CopyleaksController extends Controller
     public function saveSettings(Request $request): JsonResponse
     {
         $validated = $request->validate([
+            'email' => 'nullable|email|max:255',
             'api_key' => 'nullable|string|max:500',
             'enabled' => 'nullable|boolean',
             'debug_mode' => 'nullable|boolean',
         ]);
 
+        if (isset($validated['email']) && !empty($validated['email'])) {
+            Setting::setValue('copyleaks_email', $validated['email']);
+        }
         if (isset($validated['api_key']) && !empty($validated['api_key'])) {
             Setting::setValue('copyleaks_api_key', $validated['api_key']);
+            // Clear cached token when key changes
+            Setting::setValue('copyleaks_bearer_token', '');
+            Setting::setValue('copyleaks_token_time', '');
         }
         Setting::setValue('copyleaks_enabled', $validated['enabled'] ?? true);
         Setting::setValue('copyleaks_debug_mode', $validated['debug_mode'] ?? false);
