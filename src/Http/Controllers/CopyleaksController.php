@@ -54,7 +54,7 @@ class CopyleaksController extends Controller
         Setting::setValue('copyleaks_enabled', $validated['enabled'] ?? true);
         Setting::setValue('copyleaks_debug_mode', $validated['debug_mode'] ?? false);
 
-        hexaLog('copyleaks', 'settings_updated', 'Copyleaks  settings updated');
+        hexaLog('copyleaks', 'settings_updated', 'Copyleaks settings updated');
 
         return response()->json(['success' => true, 'message' => 'Settings saved.']);
     }
