@@ -1,13 +1,13 @@
 @extends('layouts.app')
-@section('title', 'Copyleaks  — Raw Test')
-@section('header', 'Copyleaks  — Raw Test')
+@section('title', 'Copyleaks — Raw Test')
+@section('header', 'Copyleaks — Raw Test')
 
 @section('content')
 <div class="max-w-4xl mx-auto space-y-4" x-data="copyleaksRaw()">
 
     {{-- Functions Index --}}
     <div class="bg-gray-900 rounded-xl p-6 text-sm font-mono">
-        <h2 class="text-white font-semibold mb-3">Copyleaks  Functions</h2>
+        <h2 class="text-white font-semibold mb-3">Copyleaks Functions</h2>
         <table class="w-full text-left">
             <thead><tr class="text-gray-400 border-b border-gray-700"><th class="py-1.5 px-2">Function</th><th class="py-1.5 px-2">Method</th><th class="py-1.5 px-2">Route</th><th class="py-1.5 px-2">Status</th></tr></thead>
             <tbody class="text-gray-300">

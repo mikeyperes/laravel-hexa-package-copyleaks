@@ -7,7 +7,7 @@ use hexa_core\Services\GenericService;
 use Illuminate\Support\Facades\Http;
 
 /**
- * CopyleaksService — AI content detection via Copyleaks  API.
+ * CopyleaksService — AI content detection via Copyleaks API.
  *
  * Detects AI-generated text with per-sentence probability scoring.
  * Free tier: 10,000 words/month. API: api.copyleaks.me
@@ -25,7 +25,7 @@ class CopyleaksService
     }
 
     /**
-     * Check if Copyleaks  is enabled.
+     * Check if Copyleaks is enabled.
      *
      * @return bool
      */
@@ -64,11 +64,11 @@ class CopyleaksService
     {
         $apiKey = $this->getApiKey();
         if (empty($apiKey)) {
-            return ['success' => false, 'message' => 'Copyleaks  API key not configured.'];
+            return ['success' => false, 'message' => 'Copyleaks API key not configured.'];
         }
 
         if (!$this->isEnabled()) {
-            return ['success' => false, 'message' => 'Copyleaks  is disabled.'];
+            return ['success' => false, 'message' => 'Copyleaks is disabled.'];
         }
 
         // Debug mode: only send first 3 sentences
@@ -87,7 +87,7 @@ class CopyleaksService
 
             if (!$response->successful()) {
                 $error = $response->json('error') ?? $response->body();
-                return ['success' => false, 'message' => 'Copyleaks  API error: ' . (is_string($error) ? $error : json_encode($error))];
+                return ['success' => false, 'message' => 'Copyleaks API error: ' . (is_string($error) ? $error : json_encode($error))];
             }
 
             $data = $response->json();
@@ -105,7 +105,7 @@ class CopyleaksService
                 ],
             ];
         } catch (\Exception $e) {
-            return ['success' => false, 'message' => 'Copyleaks  request failed: ' . $e->getMessage()];
+            return ['success' => false, 'message' => 'Copyleaks request failed: ' . $e->getMessage()];
         }
     }
 
@@ -118,7 +118,7 @@ class CopyleaksService
     {
         $result = $this->detect('The quick brown fox jumps over the lazy dog. This is a simple test sentence written by a human.');
         if ($result['success']) {
-            return ['success' => true, 'message' => 'Copyleaks  API connected. AI probability: ' . round(($result['data']['completely_generated_prob'] ?? 0) * 100) . '%'];
+            return ['success' => true, 'message' => 'Copyleaks API connected. AI probability: ' . round(($result['data']['completely_generated_prob'] ?? 0) * 100) . '%'];
         }
         return $result;
     }
