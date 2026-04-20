@@ -1,7 +1,7 @@
 <?php
 
 return [
-    'version' => '2.0.1',
+    'version' => '2.0.2',
     'enabled' => true,
     'login_url' => 'https://id.copyleaks.com/v3/account/login/api',
     'detect_url' => 'https://api.copyleaks.com/v2/writer-detector/{scanId}/check',
