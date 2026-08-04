@@ -2,8 +2,10 @@
 
 namespace hexa_package_copyleaks\Services;
 
+use hexa_core\AI\Contracts\AiTransactionRecorder;
 use hexa_core\Models\Setting;
 use hexa_core\Services\GenericService;
+use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 
@@ -162,13 +164,7 @@ class CopyleaksService
         try {
             $url = str_replace('{scanId}', $scanId, self::DETECT_URL);
 
-            $response = Http::withHeaders([
-                'Authorization' => 'Bearer ' . $auth['token'],
-                'Content-Type' => 'application/json',
-            ])->timeout(30)->post($url, [
-                'text' => $text,
-                'sandbox' => $this->isDebugMode(),
-            ]);
+            $response = $this->requestDetection($auth['token'], $url, $text, $scanId, 1);
 
             if (!$response->successful()) {
                 // If 401, clear cached token and retry once
@@ -177,13 +173,7 @@ class CopyleaksService
                     Setting::setValue('copyleaks_token_time', '');
                     $auth = $this->authenticate();
                     if ($auth['success']) {
-                        $response = Http::withHeaders([
-                            'Authorization' => 'Bearer ' . $auth['token'],
-                            'Content-Type' => 'application/json',
-                        ])->timeout(30)->post($url, [
-                            'text' => $text,
-                            'sandbox' => $this->isDebugMode(),
-                        ]);
+                        $response = $this->requestDetection($auth['token'], $url, $text, $scanId, 2);
                     }
                 }
 
@@ -226,5 +216,58 @@ class CopyleaksService
             return $auth;
         }
         return ['success' => true, 'message' => 'Copyleaks authenticated. Token valid for 48h. Credits remaining on dashboard.'];
+    }
+
+    private function requestDetection(string $token, string $url, string $text, string $scanId, int $attempt): Response
+    {
+        $units = ['characters' => mb_strlen($text), 'words' => str_word_count($text)];
+        $span = app(AiTransactionRecorder::class)->start([
+            'provider' => 'copyleaks',
+            'package' => 'hexawebsystems/laravel-hexa-package-copyleaks',
+            'model' => 'copyleaks-writer-detector-v2',
+            'operation' => 'detector.scan',
+            'endpoint' => parse_url($url, PHP_URL_PATH) ?: '/v2/writer-detector/check',
+            'request_metadata' => array_merge($units, [
+                'timeout_seconds' => 30,
+                'sandbox' => $this->isDebugMode(),
+                'attempt' => $attempt,
+                'scan_id' => $scanId,
+            ]),
+        ]);
+
+        try {
+            $response = Http::withHeaders([
+                'Authorization' => 'Bearer ' . $token,
+                'Content-Type' => 'application/json',
+            ])->timeout(30)->post($url, [
+                'text' => $text,
+                'sandbox' => $this->isDebugMode(),
+            ]);
+            $attributes = [
+                'provider_request_id' => $response->header('x-request-id') ?: $scanId,
+                'http_status' => $response->status(),
+                'usage' => $units,
+                'response_metadata' => [
+                    'ai_score' => $response->json('summary.ai') ?? $response->json('summary.aiScore'),
+                    'human_score' => $response->json('summary.human') ?? $response->json('summary.humanScore'),
+                    'classification' => $response->json('summary.classification'),
+                    'result_count' => count((array) $response->json('results', [])),
+                ],
+            ];
+
+            if ($response->successful()) {
+                $span->succeed($attributes);
+            } else {
+                $span->fail((string) ($response->json('message') ?? 'Copyleaks request failed.'), array_merge($attributes, [
+                    'error_type' => 'copyleaks_http_error',
+                ]));
+            }
+
+            return $response;
+        } catch (\Throwable $e) {
+            $span->fail($e, ['usage' => $units]);
+
+            throw $e;
+        }
     }
 }
